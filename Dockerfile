@@ -46,7 +46,7 @@ RUN chmod -R 755 /var/www/storage
 RUN chmod -R 755 /var/www/bootstrap/cache
 
 # Composer bağımlılıklarını yükle
-RUN composer install --optimize-autoloader --no-dev --no-interaction
+# RUN composer install --optimize-autoloader --no-dev --no-interaction
 
 # Port 9000'i aç
 EXPOSE 9000

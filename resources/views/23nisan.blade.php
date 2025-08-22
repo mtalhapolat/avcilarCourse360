@@ -443,7 +443,7 @@
         <div style="text-align: center">
             <img src="artist.png" style="width: 100px" alt="">
         </div>
-        <h1 class="formheader">23 Nisan Sergisi</h1> <br>
+        <h1 class="formheader">23 Nisan Sergisii</h1> <br>
 
         @if($enroll_details != null)
             <h3>BAŞVURUM</h3> <br>

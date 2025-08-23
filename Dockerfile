@@ -1,9 +1,7 @@
 FROM php:8.1-fpm
-
-# Çalışma dizini
 WORKDIR /var/www
 
-# Sistem paketlerini güncelle ve gerekli paketleri kur
+# Sistem paketlerini kur
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -25,51 +23,34 @@ RUN apt-get update && apt-get install -y \
 
 # PHP extension'larını kur
 RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl
-
-# GD extension'ını özel konfigürasyonla kur
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
+RUN docker-php-ext-install gd
 
 # Composer'ı kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# ÖNEMLİ: Önce sadece composer dosyalarını kopyala (Docker cache optimizasyonu)
-COPY composer.json composer.lock* ./
+# Laravel dosyalarını kopyala
+COPY . /var/www
 
-# Vendor klasörünü oluştur
-RUN mkdir -p vendor
+# ÖNEMLİ: Composer install'ı buraya koyun
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Composer bağımlılıklarını yükle (cache'den yararlanmak için önce dependencies)
-RUN composer install --no-scripts --no-autoloader --ansi --no-interaction
-
-# Şimdi tüm uygulama dosyalarını kopyala
-COPY . .
-
-# Composer autoload'u optimize et
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
-
-# Storage dizinlerini oluştur
-RUN mkdir -p storage/logs \
-    storage/framework/cache \
-    storage/framework/sessions \
-    storage/framework/views \
-    bootstrap/cache
-
-# .env dosyası yoksa .env.example'dan kopyala
+# .env ayarları
 RUN if [ ! -f .env ]; then cp .env.example .env; fi
-
-# Laravel key generate (hata olursa devam et)
 RUN php artisan key:generate --no-interaction || true
 
-# Dosya izinlerini ayarla (daha kapsamlı)
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# Dosya izinlerini ayarla
+RUN chown -R www-data:www-data /var/www
+RUN chmod -R 755 /var/www
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Vendor klasörünün oluştuğunu doğrula ve listele
-RUN ls -la /var/www/vendor && echo "✅ Vendor klasörü başarıyla oluşturuldu!"
+# Storage dizinlerini oluştur
+RUN mkdir -p /var/www/storage/logs \
+    /var/www/storage/framework/cache \
+    /var/www/storage/framework/sessions \
+    /var/www/storage/framework/views && \
+    chown -R www-data:www-data /var/www/storage && \
+    chmod -R 775 /var/www/storage
 
-# Port 9000'i aç
 EXPOSE 9000
-
 CMD ["php-fpm"]

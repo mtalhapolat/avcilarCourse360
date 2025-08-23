@@ -1,4 +1,3 @@
-
 services:
     app:
         build:
@@ -10,9 +9,10 @@ services:
         working_dir: /var/www
         volumes:
             - ./:/var/www
+            - vendor:/var/www/vendor  # Vendor'u ayrı volume yap
+            - node_modules:/var/www/node_modules  # Node modules da ayrı
         networks:
             - laravel
-
     webserver:
         image: nginx:alpine
         container_name: nginx
@@ -22,10 +22,10 @@ services:
             - "443:443"
         volumes:
             - ./:/var/www
+            - vendor:/var/www/vendor  # Nginx için de aynı vendor volume
             - ./docker/nginx:/etc/nginx/conf.d
         networks:
             - laravel
-
     db:
         image: mysql:8.0
         container_name: mysql
@@ -41,11 +41,13 @@ services:
             - "3306:3306"
         networks:
             - laravel
-
 networks:
     laravel:
         driver: bridge
-
 volumes:
     dbdata:
+        driver: local
+    vendor:  # Vendor volume'u ekle
+        driver: local
+    node_modules:  # Node modules volume'u ekle
         driver: local

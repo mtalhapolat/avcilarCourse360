@@ -1,56 +1,39 @@
-FROM php:8.1-fpm
-WORKDIR /var/www
+# Dockerfile
+FROM php:8.2-fpm
 
 # Sistem paketlerini kur
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
     git \
     curl \
-    libzip-dev \
-    libpq-dev \
+    libpng-dev \
     libonig-dev \
     libxml2-dev \
     libicu-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    zip \
+    unzip \
+    nginx \
+    && rm -rf /var/lib/apt/lists/*
 
-# PHP extension'larını kur
-RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath intl
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd
+# PHP uzantılarını kur
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl
 
 # Composer'ı kur
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Laravel dosyalarını kopyala
-COPY . /var/www
+# Çalışma dizinini ayarla
+WORKDIR /var/www
 
-# ÖNEMLİ: Composer install'ı buraya koyun
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Proje dosyalarını kopyala
+COPY . .
 
-# .env ayarları
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
-RUN php artisan key:generate --no-interaction || true
+# İzinleri ayarla
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
 
-# Dosya izinlerini ayarla
-RUN chown -R www-data:www-data /var/www
-RUN chmod -R 755 /var/www
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+# Nginx konfigürasyonunu kopyala
+COPY nginx.conf /etc/nginx/sites-available/default
 
-# Storage dizinlerini oluştur
-RUN mkdir -p /var/www/storage/logs \
-    /var/www/storage/framework/cache \
-    /var/www/storage/framework/sessions \
-    /var/www/storage/framework/views && \
-    chown -R www-data:www-data /var/www/storage && \
-    chmod -R 775 /var/www/storage
+EXPOSE 80
 
-EXPOSE 9000
-CMD ["php-fpm"]
+CMD php-fpm & nginx -g "daemon off;"

@@ -1,69 +1,55 @@
+version: '3.8'
+
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        image: laravel-app
-        container_name: laravel-app
-        restart: unless-stopped
-        working_dir: /var/www
-        volumes:
-            - ./:/var/www
-            - vendor:/var/www/vendor  # Vendor'u ayrı volume yap
-            - node_modules:/var/www/node_modules  # Node modules da ayrı
-        networks:
-            - laravel
-    webserver:
-        image: nginx:alpine
-        container_name: nginx
-        restart: unless-stopped
-        ports:
-            - "80:80"
-            - "443:443"
-        volumes:
-            - ./:/var/www
-            - vendor:/var/www/vendor  # Nginx için de aynı vendor volume
-            - ./docker/nginx:/etc/nginx/conf.d
-        networks:
-            - laravel
-    db:
-        image: mysql:8.0
-        container_name: mysql
-        restart: unless-stopped
-        environment:
-            MYSQL_DATABASE: laravel
-            MYSQL_ROOT_PASSWORD: root
-            MYSQL_USER: root
-            MYSQL_PASSWORD: root
-        volumes:
-            - dbdata:/var/lib/mysql
-        ports:
-            - "3306:3306"
-        networks:
-            - laravel
-    phpmyadmin:
-        image: phpmyadmin:latest
-        container_name: phpmyadmin
-        restart: unless-stopped
-        ports:
-          - "8080:80"
-        environment:
-          PMA_HOST: db
-          PMA_PORT: 3306
-          PMA_USER: root
-          PMA_PASSWORD: root
-          MYSQL_ROOT_PASSWORD: root
-        depends_on:
-          - db
-        networks:
-          - laravel            
-networks:
-    laravel:
-        driver: bridge
+  laravel-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www
+    depends_on:
+      - mysql
+    networks:
+      - laravel-network
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=laravel_db
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=laravel_password
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: laravel_db
+      MYSQL_USER: laravel_user
+      MYSQL_PASSWORD: laravel_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - laravel-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: root_password
+    depends_on:
+      - mysql
+    networks:
+      - laravel-network
+
 volumes:
-    dbdata:
-        driver: local
-    vendor:  # Vendor volume'u ekle
-        driver: local
-    node_modules:  # Node modules volume'u ekle
-        driver: local
+  mysql_data:
+
+networks:
+  laravel-network:
+    driver: bridge

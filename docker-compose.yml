@@ -1,12 +1,28 @@
 version: '3.8'
-
 services:
+  # Nginx Proxy Manager - SSL sertifikalarını yönetir
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'     # HTTP
+      - '443:443'   # HTTPS
+      - '8081:81'   # Yönetim paneli (8080 yerine 8081 kullandık çünkü phpMyAdmin 8080'de)
+    volumes:
+      - ./npm-data:/data
+      - ./npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - laravel-network
+    environment:
+      - DISABLE_IPV6=true
+
   laravel-app:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
+    # Artık dış port açmıyoruz, sadece internal network'te erişilebilir
+    expose:
+      - "80"
     volumes:
       - .:/var/www
     depends_on:
@@ -21,8 +37,9 @@ services:
 
   mysql:
     image: mysql:8.0
-    ports:
-      - "3306:3306"
+    # Güvenlik için dış erişimi kaldırdık, sadece internal network
+    expose:
+      - "3306"
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: laravel_db
@@ -37,6 +54,8 @@ services:
     image: phpmyadmin/phpmyadmin
     ports:
       - "8080:80"
+    expose:
+      - "80"
     environment:
       PMA_HOST: mysql
       PMA_USER: root

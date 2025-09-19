@@ -21,7 +21,9 @@
 
 
 
-ErrorDocument 404 https://basvuru.beyoglu.bel.tr
+    ErrorDocument 404 https://basvuru.beyoglu.bel.tr
+    ErrorDocument 500 https://basvuru.beyoglu.bel.tr
 
 </IfModule>
+
 
